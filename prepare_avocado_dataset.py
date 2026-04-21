@@ -4,7 +4,6 @@ import shutil
 import csv
 
 # Path configuration
-
 SOURCE_ROOT = Path(
     r"E:\A_connected environments\DLSN\Hass Avocado Ripening Photographic Dataset\Avocado Ripening Dataset"
 )
@@ -18,6 +17,7 @@ OUTPUT_ROOT = Path(
 TRAIN_RATIO = 0.8
 RANDOM_SEED = 42
 
+# Set to an integer to limit each final class size
 # Set to None to use all available images
 MAX_IMAGES_PER_CLASS = 2800
 
@@ -26,12 +26,15 @@ CLEAR_OUTPUT_FIRST = True
 
 SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
-# Stage mapping: 5 original ripening stages -> 3 final classes
+# New stage mapping:
+# 1,2 -> unripe
+# 3   -> ready
+# 4,5 -> overripe
 STAGE_TO_CLASS = {
     "1": "unripe",
-    "2": "ready",
+    "2": "unripe",
     "3": "ready",
-    "4": "ready",
+    "4": "overripe",
     "5": "overripe",
 }
 
