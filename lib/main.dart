@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+
 import 'splash_screen.dart';
 import 'homepage.dart';
 
-void main() {
+late List<CameraDescription> cameras;
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  cameras = await availableCameras();
   runApp(const AvocadoApp());
 }
 
@@ -19,8 +25,8 @@ class AvocadoApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF7FBF5),
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7BAE5D)),
       ),
-      home: const SplashScreen(
-        nextScreen: HomePage(),
+      home: SplashScreen(
+        nextScreen: HomePage(cameras: cameras),
       ),
     );
   }
