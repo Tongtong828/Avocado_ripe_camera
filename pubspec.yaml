@@ -36,6 +36,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   image_picker: ^1.1.2
   camera: ^0.11.0+2
+  tflite_flutter: ^0.12.1
+  image: ^4.8.0
+  flutter_launcher_icons: ^0.14.1
 
 dev_dependencies:
   flutter_test:
@@ -47,7 +50,6 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  flutter_native_splash: ^2.4.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -64,6 +66,7 @@ flutter:
     - assets/avocado/ready.png
     - assets/avocado/overripe.png
     - assets/avocado/cut_avocado.png
+    - assets/model/tflite_learn_968734_5.tflite
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -95,11 +98,18 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-flutter_native_splash:
-  color: "#F4FAF2"
-  image: assets/avocado/ready.png
+# flutter_native_splash:
+#   color: "#F4FAF2"
+#   image: assets/avocado/ready.png
+#   android: true
+#   ios: true
+#   android_gravity: center
+#   ios_content_mode: center
+#   fullscreen: true
+flutter_launcher_icons:
   android: true
   ios: true
-  android_gravity: center
-  ios_content_mode: center
-  fullscreen: true
+  image_path: "assets/avocado/ready.png"
+  adaptive_icon_background: "#F4FAF2"
+  adaptive_icon_foreground: "assets/avocado/ready.png"
+  min_sdk_android: 21

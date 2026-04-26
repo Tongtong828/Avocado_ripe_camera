@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'model.dart';
 import 'result.dart';
 
 class HomePage extends StatefulWidget {
@@ -18,6 +19,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   final ImagePicker _picker = ImagePicker();
+  final ModelService _modelService = ModelService();
 
   CameraController? _cameraController;
   Future<void>? _initializeControllerFuture;
@@ -26,6 +28,9 @@ class _HomePageState extends State<HomePage>
   String? resultLabel;
   double confidence = 0.0;
   bool isScanning = false;
+
+  bool isModelLoading = true;
+  String? modelError;
 
   late AnimationController _scanController;
 
@@ -39,12 +44,13 @@ class _HomePageState extends State<HomePage>
     )..repeat(reverse: true);
 
     _setupCamera();
+    _loadModel();
   }
 
   Future<void> _setupCamera() async {
     if (widget.cameras.isEmpty) return;
 
-    final CameraDescription backCamera = widget.cameras.firstWhere(
+    final backCamera = widget.cameras.firstWhere(
       (camera) => camera.lensDirection == CameraLensDirection.back,
       orElse: () => widget.cameras.first,
     );
@@ -62,7 +68,26 @@ class _HomePageState extends State<HomePage>
     }
   }
 
+  Future<void> _loadModel() async {
+    try {
+      await _modelService.loadModel();
+      if (!mounted) return;
+      setState(() {
+        isModelLoading = false;
+        modelError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        isModelLoading = false;
+        modelError = 'Model failed to load: $e';
+      });
+    }
+  }
+
   Future<void> _pickFromGallery() async {
+    if (isModelLoading || modelError != null) return;
+
     final XFile? image = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 95,
@@ -73,12 +98,14 @@ class _HomePageState extends State<HomePage>
     setState(() {
       selectedImage = File(image.path);
       resultLabel = null;
+      confidence = 0.0;
     });
 
-    await _fakeAnalyze('unripe', 0.88);
+    await _analyzeSelectedImage();
   }
 
   Future<void> _captureFromCamera() async {
+    if (isModelLoading || modelError != null) return;
     if (_cameraController == null) return;
     if (!_cameraController!.value.isInitialized) return;
 
@@ -88,27 +115,40 @@ class _HomePageState extends State<HomePage>
       setState(() {
         selectedImage = File(image.path);
         resultLabel = null;
+        confidence = 0.0;
       });
 
-      await _fakeAnalyze('ready', 0.93);
+      await _analyzeSelectedImage();
     } catch (e) {
       debugPrint('Camera capture error: $e');
     }
   }
 
-  Future<void> _fakeAnalyze(String label, double score) async {
+  Future<void> _analyzeSelectedImage() async {
+    if (selectedImage == null) return;
+
     setState(() {
       isScanning = true;
       resultLabel = null;
+      confidence = 0.0;
     });
 
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final prediction = await _modelService.predictImage(selectedImage!);
 
-    setState(() {
-      isScanning = false;
-      resultLabel = label;
-      confidence = score;
-    });
+      if (!mounted) return;
+      setState(() {
+        isScanning = false;
+        resultLabel = prediction.label;
+        confidence = prediction.confidence;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        isScanning = false;
+        modelError = 'Inference failed: $e';
+      });
+    }
   }
 
   void _clearImage() {
@@ -130,6 +170,7 @@ class _HomePageState extends State<HomePage>
   void dispose() {
     _scanController.dispose();
     _cameraController?.dispose();
+    _modelService.dispose();
     super.dispose();
   }
 
@@ -205,129 +246,11 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget _buildCornerFrame() {
-    const double cornerLength = 34;
-    const double thickness = 4;
-    const Color frameColor = Color(0xFF88FF9B);
-
-    Widget corner({
-      required Alignment alignment,
-      required BorderRadius borderRadius,
-      required double? top,
-      required double? bottom,
-      required double? left,
-      required double? right,
-      required bool showTop,
-      required bool showBottom,
-      required bool showLeft,
-      required bool showRight,
-    }) {
-      return Positioned(
-        top: top,
-        bottom: bottom,
-        left: left,
-        right: right,
-        child: Align(
-          alignment: alignment,
-          child: SizedBox(
-            width: cornerLength,
-            height: cornerLength,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: borderRadius,
-                border: Border(
-                  top: showTop
-                      ? const BorderSide(color: frameColor, width: thickness)
-                      : BorderSide.none,
-                  bottom: showBottom
-                      ? const BorderSide(color: frameColor, width: thickness)
-                      : BorderSide.none,
-                  left: showLeft
-                      ? const BorderSide(color: frameColor, width: thickness)
-                      : BorderSide.none,
-                  right: showRight
-                      ? const BorderSide(color: frameColor, width: thickness)
-                      : BorderSide.none,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Positioned.fill(
-      child: IgnorePointer(
-        child: Stack(
-          children: [
-            corner(
-              alignment: Alignment.topLeft,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(10),
-              ),
-              top: 20,
-              left: 20,
-              bottom: null,
-              right: null,
-              showTop: true,
-              showBottom: false,
-              showLeft: true,
-              showRight: false,
-            ),
-            corner(
-              alignment: Alignment.topRight,
-              borderRadius: const BorderRadius.only(
-                topRight: Radius.circular(10),
-              ),
-              top: 20,
-              right: 20,
-              bottom: null,
-              left: null,
-              showTop: true,
-              showBottom: false,
-              showLeft: false,
-              showRight: true,
-            ),
-            corner(
-              alignment: Alignment.bottomLeft,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(10),
-              ),
-              bottom: 110,
-              left: 20,
-              top: null,
-              right: null,
-              showTop: false,
-              showBottom: true,
-              showLeft: true,
-              showRight: false,
-            ),
-            corner(
-              alignment: Alignment.bottomRight,
-              borderRadius: const BorderRadius.only(
-                bottomRight: Radius.circular(10),
-              ),
-              bottom: 110,
-              right: 20,
-              top: null,
-              left: null,
-              showTop: false,
-              showBottom: true,
-              showLeft: false,
-              showRight: true,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildLiveOverlay() {
     return Positioned.fill(
       child: IgnorePointer(
         child: Stack(
           children: [
-            _buildCornerFrame(),
             _buildScanningLine(),
             Positioned(
               left: 20,
@@ -381,7 +304,9 @@ class _HomePageState extends State<HomePage>
       bottom: 26,
       child: Center(
         child: GestureDetector(
-          onTap: isScanning ? null : _captureFromCamera,
+          onTap: isScanning || isModelLoading || modelError != null
+              ? null
+              : _captureFromCamera,
           child: Container(
             width: 78,
             height: 78,
@@ -399,7 +324,9 @@ class _HomePageState extends State<HomePage>
                 height: 58,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isScanning ? Colors.white38 : Colors.white,
+                  color: (isScanning || isModelLoading)
+                      ? Colors.white38
+                      : Colors.white,
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x33000000),
@@ -421,6 +348,61 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  Widget _buildStatusBanner() {
+    if (isModelLoading) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F8EE),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 10),
+            Expanded(child: Text('Loading model...')),
+          ],
+        ),
+      );
+    }
+
+    if (modelError != null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF1F1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          modelError!,
+          style: const TextStyle(color: Color(0xFF9A2F2F)),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F8EE),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Text(
+        'Model ready',
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF476247),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMainContent() {
     final bool showLiveHint = selectedImage == null;
 
@@ -428,6 +410,8 @@ class _HomePageState extends State<HomePage>
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       child: Column(
         children: [
+          _buildStatusBanner(),
+          const SizedBox(height: 12),
           Expanded(
             child: Container(
               width: double.infinity,
@@ -435,19 +419,10 @@ class _HomePageState extends State<HomePage>
                 color: const Color(0xFFEFF6EC),
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(color: const Color(0xFFD6E5D0)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x12000000),
-                    blurRadius: 18,
-                    offset: Offset(0, 8),
-                  ),
-                ],
               ),
               child: Stack(
                 children: [
-                  Positioned.fill(
-                    child: _buildPreviewArea(),
-                  ),
+                  Positioned.fill(child: _buildPreviewArea()),
                   if (showLiveHint || isScanning) _buildLiveOverlay(),
                   if (selectedImage == null) _buildCaptureButton(),
                   if (selectedImage != null && !isScanning)
@@ -480,20 +455,11 @@ class _HomePageState extends State<HomePage>
             width: double.infinity,
             height: 54,
             child: OutlinedButton.icon(
-              onPressed: isScanning ? null : _pickFromGallery,
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-              ),
+              onPressed: isScanning || isModelLoading || modelError != null
+                  ? null
+                  : _pickFromGallery,
               icon: const Icon(Icons.photo_library_outlined),
-              label: const Text(
-                'Choose from gallery',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              label: const Text('Choose from gallery'),
             ),
           ),
         ],
