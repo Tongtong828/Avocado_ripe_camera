@@ -1,14 +1,11 @@
-# Report title goes here
+# Avocado ripe Camera by using deep learning-based image classification
 
-Name of author, link to github repo with project work in / link to Edge Impulse projects
+Name of author：Xintong Shao
+link to github repo：https://github.com/Tongtong828/Avocado_ripe_camera
+link to Edge Impulse projects：https://studio.edgeimpulse.com/public/968734/live
 
 ## Introduction
-- an overview of what the project does
-- your inspiration for making the project 
-- examples that it is based on.
-- what is the problem you are trying to solve?
-
-*Tip: probably ~200 words and images are good!*
+This project develops an avocado ripeness detection system using deep learning image classification. The system classifies avocado images into three categories，including unripe, ready, and overripe. It was first trained and tested in Edge Impulse by using a public avocado image dataset, and later extended into a mobile application that allows users to capture or upload an image and receive an interactive ripeness result card. Moreover, a small self-collected dataset was also used to test how well the model performed under more realistic capture conditions.The motivation for develop avocado ripeness detection system came from a daily problem that is avocado ripeness is often difficult to identify by appearance alone, especially at the ready stage, which lies between the more obvious extremes of unripe and overripe fruit. The project was based on examples of image classification in food quality inspection, lightweight embedded AI, and mobile computer vision applications. The main problem addressed in this work is whether a lightweight deep learning model can classify avocado ripeness accurately enough on edge devices.
 
 
 ## Application Overview
