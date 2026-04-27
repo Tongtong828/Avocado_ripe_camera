@@ -9,8 +9,7 @@ The final app allows users to capture an avocado image using the camera or selec
 ## Project Links
 
 - **GitHub repository:** https://github.com/Tongtong828/Avocado_ripe_camera
-- **Edge Impulse project:** Add Edge Impulse project link here
-
+- **Edge Impulse project:** https://studio.edgeimpulse.com/public/968734/live 
 ---
 
 ## Project Overview
